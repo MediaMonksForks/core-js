@@ -1,6 +1,5 @@
 'use strict';
 var anObject = require('../internals/an-object');
-var isSticky = require('./regexp-sticky-helpers').isSticky;
 
 // `RegExp.prototype.flags` getter implementation
 // https://tc39.github.io/ecma262/#sec-get-regexp.prototype.flags
@@ -12,6 +11,6 @@ module.exports = function () {
   if (that.multiline) result += 'm';
   if (that.dotAll) result += 's';
   if (that.unicode) result += 'u';
-  if (isSticky(that)) result += 'y';
+  if (that.sticky) result += 'y';
   return result;
 };
