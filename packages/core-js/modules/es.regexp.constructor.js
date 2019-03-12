@@ -7,6 +7,7 @@ var defineProperty = require('../internals/object-define-property').f;
 var getOwnPropertyNames = require('../internals/object-get-own-property-names').f;
 var isRegExp = require('../internals/is-regexp');
 var getFlags = require('../internals/regexp-flags');
+var stickyHelpers = require('../internals/regexp-sticky-helpers');
 var redefine = require('../internals/redefine');
 var fails = require('../internals/fails');
 var setSpecies = require('../internals/set-species');
@@ -21,10 +22,9 @@ var re2 = /a/g;
 // "new" should create a new object, old webkit bug
 var CORRECT_NEW = new NativeRegExp(re1) !== re1;
 
-// babel-minify transpiles RegExp('x', 'y') -> /x/y and it causes SyntaxError
-var SUPPORTS_Y = !fails(function () { return RegExp(CORRECT_NEW, 'y'); });
+var UNSUPPORTED_Y = stickyHelpers.UNSUPPORTED_Y;
 
-var FORCED = DESCRIPTORS && isForced('RegExp', (!CORRECT_NEW || !SUPPORTS_Y || fails(function () {
+var FORCED = DESCRIPTORS && isForced('RegExp', (!CORRECT_NEW || UNSUPPORTED_Y || fails(function () {
   re2[MATCH] = false;
   // RegExp constructor can alter flags and IsRegExp works correct with @@match
   return NativeRegExp(re1) != re1 || NativeRegExp(re2) == re2 || NativeRegExp(re1, 'i') != '/a/i';
@@ -49,7 +49,7 @@ if (FORCED) {
       pattern = pattern.source;
     }
 
-    if (!SUPPORTS_Y) {
+    if (UNSUPPORTED_Y) {
       var sticky = !!flags && flags.indexOf('y') > -1;
       if (sticky) flags = flags.replace(/y/g, '');
     }
@@ -60,10 +60,22 @@ if (FORCED) {
       RegExpWrapper
     );
 
-    if (!SUPPORTS_Y) defineProperty(result, 'sticky', {
-      configurable: true,
-      get: function () { return sticky; }
-    });
+    if (UNSUPPORTED_Y) {
+      var desc = {
+        configurable: true,
+        get: function () { return sticky; }
+      };
+      try {
+        defineProperty(result, 'sticky', desc);
+      } catch (e) {
+        // In old firefox versions (e.g. 11.0), RegExps have a
+        // non-configurable non-writable "sticky" property.
+        // It isn't possible to correctly set it to "true",
+        // but we need to store "sticky" in another property to
+        // make polyfilled .exec work.
+        defineProperty(result, stickyHelpers.COREJS_STICKY, desc);
+      }
+    }
 
     return result;
   };
@@ -80,7 +92,7 @@ if (FORCED) {
   RegExpPrototype.constructor = RegExpWrapper;
   RegExpWrapper.prototype = RegExpPrototype;
   redefine(global, 'RegExp', RegExpWrapper);
-  if (!SUPPORTS_Y) hide(RegExpWrapper, 'sham', true);
+  if (UNSUPPORTED_Y) hide(RegExpWrapper, 'sham', true);
 }
 
 // https://tc39.github.io/ecma262/#sec-get-regexp-@@species
