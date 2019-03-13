@@ -14,7 +14,6 @@ var setSpecies = require('../internals/set-species');
 var wellKnownSymbol = require('../internals/well-known-symbol');
 var InternalStateModule = require('../internals/internal-state');
 
-var getInternalState = InternalStateModule.get;
 var setInternalState = InternalStateModule.set;
 var MATCH = wellKnownSymbol('match');
 var NativeRegExp = global.RegExp;
@@ -81,21 +80,7 @@ if (FORCED) {
   RegExpWrapper.prototype = RegExpPrototype;
   redefine(global, 'RegExp', RegExpWrapper);
 
-  if (UNSUPPORTED_Y) {
-    hide(RegExpWrapper, 'sham', true);
-    defineProperty(RegExpPrototype, 'sticky', {
-      configurable: true,
-      get: function () {
-        // We can't use InternalStateModule.getterFor because
-        // we don't add metadata for regexps created by a literal.
-        if (!(this instanceof RegExpWrapper) && this !== RegExpPrototype) {
-          throw TypeError('Incompatible receiver, RegExp required');
-        }
-        var state = getInternalState(this);
-        return state.sticky;
-      }
-    });
-  }
+  if (UNSUPPORTED_Y) hide(RegExpWrapper, 'sham', true);
 }
 
 // https://tc39.github.io/ecma262/#sec-get-regexp-@@species
