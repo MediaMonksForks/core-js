@@ -3,11 +3,11 @@ var fixRegExpWellKnownSymbolLogic = require('../internals/fix-regexp-well-known-
 var isRegExp = require('../internals/is-regexp');
 var anObject = require('../internals/an-object');
 var requireObjectCoercible = require('../internals/require-object-coercible');
-var speciesConstructor = require('../internals/species-constructor');
 var advanceStringIndex = require('../internals/advance-string-index');
 var toLength = require('../internals/to-length');
 var callRegExpExec = require('../internals/regexp-exec-abstract');
 var regexpExec = require('../internals/regexp-exec');
+var stickyHelpers = require('../internals/regexp-sticky-helpers');
 
 var arrayPush = [].push;
 var min = Math.min;
@@ -85,17 +85,15 @@ fixRegExpWellKnownSymbolLogic('split', 2, function (SPLIT, nativeSplit, maybeCal
       var res = maybeCallNative(internalSplit, regexp, this, limit, internalSplit !== nativeSplit);
       if (res.done) return res.value;
 
-      var rx = anObject(regexp);
-      var S = String(this);
-      var C = speciesConstructor(rx, RegExp);
+        var rx = anObject(regexp);
+        var S = String(this);
 
         var unicodeMatching = rx.unicode;
-        var flags = (rx.ignoreCase ? 'i' : '') +
-                    (rx.multiline ? 'm' : '') +
-                    (rx.unicode ? 'u' : '') +
-                    'y';
+        var splitter = stickyHelpers.createStickyRegExp(
+          rx,
+          (rx.ignoreCase ? 'i' : '') + (rx.multiline ? 'm' : '') + (unicodeMatching ? 'u' : '')
+        );
 
-        var splitter = new C(rx, flags);
         var lim = limit === undefined ? MAX_UINT32 : limit >>> 0;
         if (lim === 0) return [];
         if (S.length === 0) return callRegExpExec(splitter, S) === null ? [S] : [];
