@@ -8,7 +8,7 @@ const data = require('./data');
 const order = new Set(Object.keys(data));
 
 function getModulesForEntryPoint(entry) {
-  const match = entry.match(/\/modules\/([^/]+)$/);
+  const match = entry.match(/[/\\]modules[/\\]([^/\\]+)$/);
   if (match) return [match[1]];
   const name = require.resolve(entry);
   const result = [];
