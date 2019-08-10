@@ -782,7 +782,11 @@ const data = {
     firefox: '49',
   },
   'es.regexp.exec': {
-    ie: '9',
+    chrome: '26',
+    firefox: '4',
+    safari: '8.0',
+  },
+  'es.regexp.test': {
     chrome: '26',
     firefox: '4',
     safari: '8.0',
